@@ -68,9 +68,9 @@ void cuChanRMSOnlineSum(
 template<typename T, typename U> __device__
 void cuWelfordMuSigma2(
   const T* __restrict__ vals,
-  const int n1,
-  const int n2,
-  const int i1,
+  const int64_t n1,
+  const int64_t n2,
+  const int64_t i1,
   U& mu,
   U& sigma2,
   U* buf,
@@ -90,9 +90,9 @@ void cuWelfordMuSigma2(
     // synchronization is implicit
     // initialize with standard Welford algorithm
     const int numx = blockDim.x * blockDim.y;
-    const int thrx = threadIdx.x + threadIdx.y * blockDim.x;
+    const int64_t thrx = threadIdx.x + threadIdx.y * blockDim.x;
     const T* lvals = vals + i1*n2;
-    int l = 4*thrx;
+    int64_t l = 4*thrx;
     for (;  l+3 < n2;  l+=4*numx) {
       for (int k = 0;  k < 4;  ++k) {
         U curr = static_cast<U>(lvals[l+k]);
@@ -177,9 +177,9 @@ void cuWelfordMuSigma2(
 template<> __device__
 void cuWelfordMuSigma2(
   const at::Half* __restrict__ vals,
-  const int n1,
-  const int n2,
-  const int i1,
+  const int64_t n1,
+  const int64_t n2,
+  const int64_t i1,
   float& mu,
   float& sigma2,
   float* buf,
@@ -199,9 +199,9 @@ void cuWelfordMuSigma2(
     // synchronization is implicit
     // initialize with standard Welford algorithm
     const int numx = blockDim.x * blockDim.y;
-    const int thrx = threadIdx.x + threadIdx.y * blockDim.x;
+    const int64_t thrx = threadIdx.x + threadIdx.y * blockDim.x;
     const at::Half* lvals = vals + i1*n2;
-    int l = 8*thrx;
+    int64_t l = 8*thrx;
     if ((((size_t)lvals)&3) != 0) {
       // 16 bit alignment
       // first thread consumes first point
@@ -355,8 +355,8 @@ void cuApplyLayerNorm_(
   U* __restrict__ mean,
   U* __restrict__ invvar,
   const T* __restrict__ vals,
-  const int n1,
-  const int n2,
+  const int64_t n1,
+  const int64_t n2,
   const U epsilon,
   const V* __restrict__ gamma,
   const V* __restrict__ beta,
@@ -414,8 +414,8 @@ void cuApplyLayerNorm(
   U* __restrict__ mean,
   U* __restrict__ invvar,
   const T* __restrict__ vals,
-  const int n1,
-  const int n2,
+  const int64_t n1,
+  const int64_t n2,
   const U epsilon,
   const V* __restrict__ gamma,
   const V* __restrict__ beta
@@ -429,8 +429,8 @@ void cuApplyRMSNorm(
   V* __restrict__ output_vals,
   U* __restrict__ invvar,
   const T* __restrict__ vals,
-  const int n1,
-  const int n2,
+  const int64_t n1,
+  const int64_t n2,
   const U epsilon,
   const V* __restrict__ gamma)
 {
@@ -856,7 +856,7 @@ void HostApplyLayerNorm(
             threads.y*sizeof(U)+(threads.y/2)*sizeof(U) :
             0;
     cuApplyLayerNorm<<<blocks, threads, nshared, stream>>>(
-      output, mean, invvar, input, n1, n2, U(epsilon), gamma, beta);
+      output, mean, invvar, input, static_cast<int64_t>(n1), static_cast<int64_t>(n2), U(epsilon), gamma, beta);
 }
 
 template<typename T, typename U, typename V=T>
@@ -878,7 +878,7 @@ void HostApplyRMSNorm(
             threads.y*sizeof(U)+(threads.y/2)*sizeof(U) :
             0;
     cuApplyRMSNorm<<<blocks, threads, nshared, stream>>>(
-      output, invvar, input, n1, n2, U(epsilon), gamma);
+      output, invvar, input, static_cast<int64_t>(n1), static_cast<int64_t>(n2), U(epsilon), gamma);
 }
 
 void cuda_layer_norm(
